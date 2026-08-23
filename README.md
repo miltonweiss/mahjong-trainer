@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mahjong Trainer
 
-## Getting Started
-
-First, run the development server:
+A Duolingo-style flashcard trainer for reading Singapore mahjong tiles from
+memory — 46 tile faces across suits, honours and bonus tiles.
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Screens
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Route            | What it is                                                       |
+| ---------------- | ---------------------------------------------------------------- |
+| `/`              | Learning path — units grouped by suit, unlocked in order         |
+| `/lesson/[unit]` | A lesson session: intro cards + mixed exercise types             |
+| `/practice`      | Spaced-repetition review, weakest and most overdue tiles first   |
+| `/tiles`         | Searchable glossary of every tile with mastery per tile          |
+| `/stats`         | Streak calendar, XP, accuracy, mastery heat grid                 |
+| `/settings`      | **What to train** — toggle tile groups, question types, goal     |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it fits together
 
-## Learn More
+Everything is data-driven from `src/lib/tiles.ts`, so switching a group on or
+off in Settings is the only thing that changes what the app teaches:
 
-To learn more about Next.js, take a look at the following resources:
+- **`lib/tiles.ts`** — the 46 tiles and the 8 groups they belong to. Each tile
+  carries its English name, accepted aliases for typed answers, Chinese name,
+  pinyin, how many copies are in a set, and a memory hook.
+- **`lib/units.ts`** — builds the learning path from the enabled groups. Suits
+  are split into chunks of three plus a recap unit; honours and bonus groups
+  are a single unit each.
+- **`lib/exercises.ts`** — assembles a lesson: unseen tiles get an intro card
+  and an easy first question, then everything drills in a mix of the question
+  types the learner has enabled. Distractors are drawn from the same suit
+  first, so the number actually has to be read.
+- **`lib/srs.ts`** — Leitner boxes 0–5 with intervals from 0h to 14 days. A
+  miss drops a tile two boxes rather than to zero.
+- **`lib/progress-store.tsx`** — XP, streak, per-tile scores and settings, read
+  from `localStorage` through `useSyncExternalStore`. Progress never leaves the
+  device.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tile art
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tile faces are drawn in `components/TileFace.tsx` rather than loaded as images
+or taken from the Unicode mahjong block (which renders inconsistently and turns
+the red dragon into a colour emoji). Dots and bamboo are SVG shapes; characters,
+winds, dragons and bonus tiles use CJK glyphs, which is what the real tiles
+carry. Swapping in illustrated art later means changing this one file.
 
-## Deploy on Vercel
+## Design
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Clash Grotesk** for headings and numerals, **General Sans** for body text,
+  both self-hosted from `public/fonts`.
+- Chinese red `#c8102e` as the action colour, jade for correct answers, gold for
+  streaks and bonus tiles, on a warm off-white ground. Light mode only.
