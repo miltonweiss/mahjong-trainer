@@ -52,7 +52,7 @@ export default function LessonPage() {
   return (
     <LessonSession
       exercises={exercises}
-      meta={{ title: unit.title, exitHref: "/", unitId: unit.id }}
+      meta={{ exitHref: "/", unitId: unit.id }}
     />
   );
 }

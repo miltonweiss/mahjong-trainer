@@ -7,6 +7,7 @@ import { ChevronLeftIcon } from "@/components/icons";
 import { useProgress } from "@/lib/progress-store";
 import { toggleGroup } from "@/lib/storage";
 import { TILE_GROUPS, tilesInGroup } from "@/lib/tiles";
+import type { StringKey } from "@/lib/i18n";
 import type { GroupId, Settings } from "@/lib/types";
 
 const GOALS = [20, 40, 60, 100];
@@ -34,7 +35,7 @@ const MODE_COPY: {
 ];
 
 export default function SettingsPage() {
-  const { progress, ready, updateSettings, resetProgress } = useProgress();
+  const { progress, ready, updateSettings, resetProgress, t } = useProgress();
   const { settings } = progress;
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -56,7 +57,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="pb-12">
+    <div className="mx-auto w-full max-w-lg pb-12">
       <header className="pointer-events-none sticky top-0 z-30 px-4 pt-3 pb-2">
         <div className="pointer-events-auto mx-auto flex w-fit items-center gap-3 rounded-full bg-white/85 py-1.5 pr-5 pl-1.5 shadow-card ring-1 ring-white/70 backdrop-blur-xl">
           <Link
@@ -82,8 +83,8 @@ export default function SettingsPage() {
             <Row
               key={group.id}
               leading={<TileCard tile={tiles[0]} size="sm" />}
-              title={group.name}
-              subtitle={group.blurb}
+              title={t(`group.${group.id}` as StringKey)}
+              subtitle={t(`blurb.${group.id}` as StringKey)}
               meta={`${tiles.length} tiles`}
               on={on}
               disabled={isLastOn}

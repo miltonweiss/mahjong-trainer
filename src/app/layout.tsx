@@ -20,7 +20,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className="h-full antialiased">
       <body className="warm-glow flex min-h-full flex-col">
         <TopBar />
-        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+        <main className="flex w-full flex-1 flex-col">
           {children}
         </main>
       </body>

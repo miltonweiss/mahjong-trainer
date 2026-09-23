@@ -468,7 +468,7 @@ export function TileFace({ tile }: { tile: Tile }) {
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       className="h-full w-full"
       role="img"
-      aria-label={tile.name}
+      aria-label={tile.en.name}
     >
       {tile.group === "dots" && <DotsFace value={tile.value!} />}
       {tile.group === "characters" && <CharactersFace value={tile.value!} />}

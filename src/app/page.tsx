@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { CheckIcon, ChevronRightIcon, LockIcon } from "@/components/icons";
+import { CheckIcon, LockIcon } from "@/components/icons";
 import { TileBack, TileCard } from "@/components/TileCard";
 import { useProgress } from "@/lib/progress-store";
 import type { StringKey, Translate } from "@/lib/i18n";
@@ -15,6 +15,11 @@ type State = "done" | "current" | "locked";
 const NUMERALS = "一二三四五六七八九十";
 const RECAP_GLYPH = "復";
 const PREVIEW_TILES = 4;
+const ROOM_VARIANTS = 4;
+
+/** Interior timber — window frames, floorboards, scroll rods. */
+const TIMBER = "#8a4b32";
+const PAPER = "#f6e3cf";
 
 export default function LearnPage() {
   const { progress, ready, path, t } = useProgress();
@@ -34,7 +39,7 @@ export default function LearnPage() {
   }, [path]);
 
   return (
-    <div className="flex flex-col gap-14 px-4 pt-6 pb-16">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-14 px-2 pt-6 pb-16 sm:px-4">
       {groups.map(({ group, units }) => (
         <GroupBlock
           key={group}
@@ -54,7 +59,7 @@ function groupKindLabel(group: Unit["group"], t: Translate): string {
   return t(`kind.${GROUP_BY_ID[group].kind}` as StringKey);
 }
 
-/* ── Group: a pagoda tier sitting on a lacquer plaque ──────────────────── */
+/* ── Group: one house, one room per level ──────────────────────────────── */
 
 function GroupBlock({
   group,
@@ -96,7 +101,9 @@ function GroupBlock({
       <div className="relative mx-[4%]">
         <Pillar side="left" wood={wood} />
         <Pillar side="right" wood={wood} />
-        <header className={`relative z-10 mx-[2%] -mt-px rounded-t-[12px] rounded-b-[28px] px-5 pt-5 pb-5 ${plaque}`}>
+        <header
+          className={`relative z-10 mx-[3%] -mt-px rounded-t-[12px] rounded-b-[28px] px-5 pt-5 pb-5 ${plaque}`}
+        >
           <div className="flex items-center gap-4">
             {sampleId ? (
               <TileCard tile={getTile(sampleId)} size="sm" />
@@ -111,7 +118,7 @@ function GroupBlock({
               >
                 {groupKindLabel(group, t)}
               </p>
-              <h2 className="text-[24px] leading-tight font-semibold">
+              <h2 className="text-[26px] leading-tight font-semibold">
                 {t(`group.${group}` as StringKey)}
               </h2>
             </div>
@@ -144,17 +151,16 @@ function GroupBlock({
           </div>
         </header>
 
-        <ol className="relative flex flex-col px-5">
+        <ol className="relative flex flex-col">
           {units.map((unit, i) => (
             <li key={unit.id}>
-              <div className="-mx-5">
-                <Beam variant={i % BEAM_VARIANTS} wood={wood} />
-              </div>
-              <LevelCard
+              <Beam wood={wood} />
+              <Room
                 unit={unit}
                 title={unitTitle(unit, t)}
                 index={i}
                 state={stateOf(unit)}
+                wood={wood}
                 t={t}
               />
             </li>
@@ -166,16 +172,9 @@ function GroupBlock({
   );
 }
 
-/* ── House frame: pillars, beams and the stone base ────────────────────── */
+/* ── House frame: roof, pillars, floor beams and the stone base ────────── */
 
-type Wood = {
-  dark: string;
-  light: string;
-  trim: string;
-  lantern: string;
-};
-
-const BEAM_VARIANTS = 3;
+type Wood = { dark: string; light: string; trim: string };
 
 function woodOf(state: State): Wood {
   if (state === "current") {
@@ -183,161 +182,16 @@ function woodOf(state: State): Wood {
       dark: "var(--color-red-700)",
       light: "var(--color-red-600)",
       trim: "var(--color-gold)",
-      lantern: "var(--color-red-500)",
     };
   }
   if (state === "done") {
-    return {
-      dark: "#15634c",
-      light: "var(--color-jade)",
-      trim: "var(--color-gold)",
-      lantern: "var(--color-red-500)",
-    };
+    return { dark: "#15634c", light: "var(--color-jade)", trim: "var(--color-gold)" };
   }
   return {
     dark: "var(--color-line-strong)",
     light: "var(--color-bone)",
     trim: "#cbbdaf",
-    lantern: "var(--color-bone)",
   };
-}
-
-function Pillar({ side, wood }: { side: "left" | "right"; wood: Wood }) {
-  return (
-    <span
-      aria-hidden
-      className={`absolute top-0 bottom-0 w-3 rounded-t-[4px] ${
-        side === "left" ? "left-0" : "right-0"
-      }`}
-      style={{
-        background: `linear-gradient(to right, ${wood.light}, ${wood.dark})`,
-      }}
-    />
-  );
-}
-
-/** The piece of timber between two floors; alternates so the house has detail. */
-function Beam({ variant, wood }: { variant: number; wood: Wood }) {
-  return (
-    <svg viewBox="0 0 400 44" className="block w-full" aria-hidden="true">
-      {variant === 0 && <LintelBrackets wood={wood} />}
-      {variant === 1 && <LanternBeam wood={wood} />}
-      {variant === 2 && <Balustrade wood={wood} />}
-    </svg>
-  );
-}
-
-function LintelBrackets({ wood }: { wood: Wood }) {
-  return (
-    <>
-      <rect x="0" y="6" width="400" height="13" rx="6.5" fill={wood.dark} />
-      <path
-        d="M14 12.5 H386"
-        stroke={wood.trim}
-        strokeWidth={2}
-        strokeLinecap="round"
-        opacity={0.7}
-      />
-      {[64, 144, 256, 336].map((x) => (
-        <g key={x}>
-          <path
-            d={`M${x - 15} 19 H${x + 15} L${x + 8} 31 Q${x} 34 ${x - 8} 31 Z`}
-            fill={wood.light}
-          />
-          <circle cx={x} cy={25} r={2.5} fill={wood.trim} />
-        </g>
-      ))}
-    </>
-  );
-}
-
-function LanternBeam({ wood }: { wood: Wood }) {
-  return (
-    <>
-      <rect x="0" y="3" width="400" height="9" rx="4.5" fill={wood.dark} />
-      {[72, 328].map((x) => (
-        <g key={x}>
-          <path d={`M${x} 12 V16`} stroke={wood.trim} strokeWidth={2} />
-          <rect x={x - 6} y="15" width="12" height="4" rx="2" fill={wood.trim} />
-          <ellipse cx={x} cy="27" rx="12" ry="9" fill={wood.lantern} />
-          <ellipse
-            cx={x}
-            cy="27"
-            rx="5"
-            ry="9"
-            fill="none"
-            stroke={wood.dark}
-            strokeWidth={1.5}
-            opacity={0.35}
-          />
-          <rect x={x - 6} y="35" width="12" height="4" rx="2" fill={wood.trim} />
-          <path
-            d={`M${x} 39 V44`}
-            stroke={wood.trim}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-        </g>
-      ))}
-      <path
-        d="M200 12 L205 17 L200 22 L195 17 Z"
-        fill={wood.trim}
-        stroke={wood.trim}
-        strokeWidth={2}
-        strokeLinejoin="round"
-      />
-    </>
-  );
-}
-
-function Balustrade({ wood }: { wood: Wood }) {
-  const posts = [];
-  for (let x = 26; x <= 374; x += 22) {
-    if (Math.abs(x - 200) < 16) continue;
-    posts.push(x);
-  }
-  return (
-    <>
-      <rect x="0" y="6" width="400" height="7" rx="3.5" fill={wood.dark} />
-      {posts.map((x) => (
-        <rect
-          key={x}
-          x={x - 2.5}
-          y="13"
-          width="5"
-          height="17"
-          rx="2.5"
-          fill={wood.light}
-        />
-      ))}
-      <rect x="0" y="30" width="400" height="7" rx="3.5" fill={wood.dark} />
-      <circle cx="200" cy="21.5" r="8" fill={wood.trim} />
-      <rect
-        x="197"
-        y="18.5"
-        width="6"
-        height="6"
-        rx="1.5"
-        fill={wood.dark}
-      />
-    </>
-  );
-}
-
-/** Stepped stone platform the house stands on. */
-function Foundation() {
-  return (
-    <svg
-      viewBox="0 0 400 40"
-      className="block w-full drop-shadow-[0_6px_10px_rgb(80_50_30/0.1)]"
-      aria-hidden="true"
-    >
-      <rect x="10" y="0" width="380" height="14" rx="6" fill="#e8ddd1" />
-      <rect x="0" y="12" width="400" height="16" rx="7" fill="#dacbbb" />
-      <rect x="168" y="27" width="64" height="7" rx="3.5" fill="#e8ddd1" />
-      <rect x="156" y="33" width="88" height="7" rx="3.5" fill="#dacbbb" />
-    </svg>
-  );
 }
 
 /** Two stacked roof tiers with upturned eaves, in the colour of the group's state. */
@@ -388,65 +242,148 @@ function PagodaRoof({ state }: { state: State }) {
   );
 }
 
-/* ── Level: a big stacked lacquer plaque ───────────────────────────────── */
+function Pillar({ side, wood }: { side: "left" | "right"; wood: Wood }) {
+  return (
+    <span
+      aria-hidden
+      className={`absolute top-0 bottom-0 w-4 rounded-t-[4px] ${
+        side === "left" ? "left-0" : "right-0"
+      }`}
+      style={{
+        background: `linear-gradient(to right, ${wood.light}, ${wood.dark})`,
+      }}
+    />
+  );
+}
 
-function LevelCard({
+/** Lintel between two floors. */
+function Beam({ wood }: { wood: Wood }) {
+  return (
+    <div
+      aria-hidden
+      className="relative h-4 rounded-full"
+      style={{ background: wood.dark }}
+    >
+      <div
+        className="absolute inset-x-5 top-1/2 h-[2px] -translate-y-1/2 rounded-full opacity-70"
+        style={{ background: wood.trim }}
+      />
+    </div>
+  );
+}
+
+/** Carved brackets hanging from the lintel into the top of a room. */
+function Brackets({ wood }: { wood: Wood }) {
+  return (
+    <span aria-hidden className="absolute inset-x-6 top-0 flex justify-between">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <svg key={i} viewBox="0 0 30 12" className="h-3 w-[30px]">
+          <path d="M0 0 H30 L23 9 Q15 12 7 9 Z" fill={wood.light} />
+          <circle cx="15" cy="4.5" r="2.2" fill={wood.trim} />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+/** Stepped stone platform the house stands on. */
+function Foundation() {
+  return (
+    <svg
+      viewBox="0 0 400 40"
+      className="block w-full drop-shadow-[0_6px_10px_rgb(80_50_30/0.1)]"
+      aria-hidden="true"
+    >
+      <rect x="10" y="0" width="380" height="14" rx="6" fill="#e8ddd1" />
+      <rect x="0" y="12" width="400" height="16" rx="7" fill="#dacbbb" />
+      <rect x="168" y="27" width="64" height="7" rx="3.5" fill="#e8ddd1" />
+      <rect x="156" y="33" width="88" height="7" rx="3.5" fill="#dacbbb" />
+    </svg>
+  );
+}
+
+/* ── Room: a level, furnished ──────────────────────────────────────────── */
+
+const WALL: Record<State, string> = {
+  current: "#fff3e3",
+  done: "#fbf5ee",
+  locked: "#f1ebe4",
+};
+
+function Room({
   unit,
   title,
   index,
   state,
+  wood,
   t,
 }: {
   unit: Unit;
   title: string;
   index: number;
   state: State;
+  wood: Wood;
   t: Translate;
 }) {
   const glyph = unit.isReview ? RECAP_GLYPH : (NUMERALS[index] ?? `${index + 1}`);
   const preview = unit.tileIds.slice(0, PREVIEW_TILES);
   const extra = unit.tileIds.length - preview.length;
 
-  const layers =
-    state === "current"
-      ? ["bg-red-200", "bg-red-100"]
-      : state === "done"
-        ? ["bg-jade-100", "bg-jade-50"]
-        : ["bg-line", "bg-bone"];
-
-  const face =
-    state === "current"
-      ? "bg-gradient-to-br from-red-600 to-red-500 text-white ring-2 ring-inset ring-gold/60 shadow-glow-red"
-      : state === "done"
-        ? "bg-white text-ink shadow-card"
-        : "bg-[#fdfaf6] text-ink-faint shadow-soft";
-
   const seal =
     state === "current"
-      ? "bg-white text-red-600 ring-2 ring-gold/70"
+      ? "bg-red-600 text-white shadow-glow-red ring-2 ring-gold/70"
       : state === "done"
         ? "bg-jade text-white"
         : "bg-bone text-ink-faint";
 
-  const content = (
+  const inner = (
     <>
+      {state === "current" && (
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(55%_70%_at_50%_45%,rgb(255_200_130/0.45),transparent)]"
+        />
+      )}
+
       <span
-        className={`cjk relative grid h-[68px] w-[68px] shrink-0 place-items-center rounded-[18px] text-[32px] font-semibold ${seal}`}
+        aria-hidden
+        className={`absolute inset-0 ${state === "locked" ? "opacity-40 grayscale" : ""}`}
       >
-        {glyph}
-        {state === "done" && (
-          <span className="absolute -right-1.5 -bottom-1.5 grid h-6 w-6 place-items-center rounded-full bg-white text-jade shadow-soft">
-            <CheckIcon className="h-3.5 w-3.5" />
-          </span>
-        )}
+        <RoomDecor variant={index % ROOM_VARIANTS} id={unit.id} />
       </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-display text-[20px] leading-tight font-semibold">
+      <Brackets wood={wood} />
+
+      <span
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-3"
+        style={{ background: TIMBER }}
+      >
+        <span className="absolute inset-x-0 top-0 h-[2px] bg-gold/50" />
+      </span>
+
+      <span className="relative flex h-full flex-col items-center justify-center gap-2.5 px-[78px] pt-4 pb-7 text-center sm:px-[132px]">
+        <span
+          className={`cjk relative grid h-14 w-14 place-items-center rounded-[16px] text-[28px] font-semibold ${seal}`}
+        >
+          {glyph}
+          {state === "done" && (
+            <span className="absolute -right-1.5 -bottom-1.5 grid h-6 w-6 place-items-center rounded-full bg-white text-jade shadow-soft">
+              <CheckIcon className="h-3.5 w-3.5" />
+            </span>
+          )}
+        </span>
+
+        <span
+          className={`font-display text-[21px] leading-tight font-semibold ${
+            state === "locked" ? "text-ink-faint" : "text-ink"
+          }`}
+        >
           {title}
         </span>
+
         {preview.length > 0 && (
-          <span className="mt-2.5 flex items-center gap-1">
+          <span className="flex items-center gap-1">
             {preview.map((id, i) =>
               state === "locked" ? (
                 <TileBack
@@ -459,57 +396,327 @@ function LevelCard({
               ),
             )}
             {extra > 0 && (
-              <span
-                className={`ml-1 text-[13px] font-semibold ${
-                  state === "current" ? "text-white/80" : "text-ink-faint"
-                }`}
-              >
+              <span className="ml-1 text-[13px] font-semibold text-ink-faint">
                 +{extra}
               </span>
             )}
           </span>
         )}
-      </span>
 
-      {state === "current" ? (
-        <span className="shrink-0 rounded-full bg-gold px-4 py-2.5 font-display text-[15px] font-semibold text-red-800 shadow-soft">
-          {t("home.start")}
-        </span>
-      ) : state === "done" ? (
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface text-ink-muted">
-          <ChevronRightIcon className="h-5 w-5" />
-        </span>
-      ) : (
-        <LockIcon className="h-5 w-5 shrink-0" />
-      )}
+        {state === "current" ? (
+          <span className="mt-1 rounded-full bg-red-600 px-6 py-2.5 font-display text-[16px] font-semibold text-white shadow-glow-red transition-transform group-active:scale-95">
+            {t("home.start")}
+          </span>
+        ) : state === "locked" ? (
+          <span className="mt-1 grid h-9 w-9 place-items-center rounded-full bg-bone text-ink-faint">
+            <LockIcon className="h-4 w-4" />
+          </span>
+        ) : null}
+      </span>
     </>
   );
 
-  const faceClass = `relative flex min-h-[128px] items-center gap-4 rounded-[28px] p-4 pr-5 ${face}`;
+  const roomClass = "group relative mx-4 block min-h-[260px] overflow-hidden";
 
-  return (
-    <div className="relative pb-3">
-      <span
-        aria-hidden
-        className={`absolute inset-x-7 top-3 bottom-0 rounded-[28px] ${layers[1]}`}
-      />
-      <span
-        aria-hidden
-        className={`absolute inset-x-3.5 top-1.5 bottom-1.5 rounded-[28px] ${layers[0]}`}
-      />
-      {state === "locked" ? (
-        <div
-          className={`${faceClass} cursor-not-allowed`}
-          title={`${title} — locked`}
-          aria-disabled
-        >
-          {content}
-        </div>
-      ) : (
-        <Link href={`/lesson/${unit.id}`} className={`press ${faceClass}`}>
-          {content}
-        </Link>
-      )}
+  return state === "locked" ? (
+    <div
+      className={`${roomClass} cursor-not-allowed`}
+      style={{ background: WALL[state] }}
+      title={`${title} — locked`}
+      aria-disabled
+    >
+      {inner}
     </div>
+  ) : (
+    <Link
+      href={`/lesson/${unit.id}`}
+      className={`${roomClass} transition-[filter] hover:brightness-[1.03]`}
+      style={{ background: WALL[state] }}
+    >
+      {inner}
+    </Link>
+  );
+}
+
+/* ── Room furnishings ──────────────────────────────────────────────────── */
+
+/** Left and right halves of the room's furniture, drawn on a 120×228 wall. */
+function Side({
+  side,
+  anchor = "floor",
+  children,
+}: {
+  side: "left" | "right";
+  anchor?: "floor" | "ceiling";
+  children: React.ReactNode;
+}) {
+  return (
+    <svg
+      viewBox="0 0 120 228"
+      className={`absolute h-[74%] w-auto sm:h-[calc(100%-12px)] ${
+        side === "left" ? "left-0" : "right-0"
+      } ${anchor === "floor" ? "bottom-3" : "top-0"}`}
+    >
+      {children}
+    </svg>
+  );
+}
+
+function RoomDecor({ variant, id }: { variant: number; id: string }) {
+  if (variant === 0) {
+    return (
+      <>
+        <Side side="left">
+          <MoonWindow clipId={`moon-${id}`} />
+        </Side>
+        <Side side="right" anchor="ceiling">
+          <Lantern x={38} drop={26} />
+          <Lantern x={84} drop={46} />
+        </Side>
+      </>
+    );
+  }
+  if (variant === 1) {
+    return (
+      <>
+        <Side side="left">
+          <LatticeWindow />
+        </Side>
+        <Side side="right">
+          <HangingScroll glyph="福" />
+        </Side>
+      </>
+    );
+  }
+  if (variant === 2) {
+    return (
+      <>
+        <Side side="left">
+          <Couplet glyphs="春滿堂" />
+        </Side>
+        <Side side="right">
+          <Couplet glyphs="福臨門" />
+        </Side>
+      </>
+    );
+  }
+  return (
+    <>
+      <Side side="left">
+        <FoldingScreen />
+      </Side>
+      <Side side="right">
+        <Vase />
+      </Side>
+    </>
+  );
+}
+
+function MoonWindow({ clipId }: { clipId: string }) {
+  return (
+    <>
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx="62" cy="104" r="44" />
+        </clipPath>
+      </defs>
+      <circle cx="62" cy="104" r="44" fill="#fbe7d2" />
+      <g clipPath={`url(#${clipId})`}>
+        <circle cx="80" cy="84" r="9" fill="#f2a65a" />
+        <path d="M10 136 L40 98 L58 116 L82 84 L120 136 Z" fill="#e7c0a0" />
+        <path d="M10 150 L48 116 L74 134 L120 104 L120 160 Z" fill="#d6a283" />
+      </g>
+      <circle cx="62" cy="104" r="44" fill="none" stroke={TIMBER} strokeWidth={7} />
+      <rect x="20" y="210" width="84" height="8" rx="4" fill={TIMBER} opacity={0.35} />
+    </>
+  );
+}
+
+function Lantern({ x, drop }: { x: number; drop: number }) {
+  const cy = drop + 22;
+  return (
+    <g>
+      <path d={`M${x} 0 V${drop}`} stroke="var(--color-gold)" strokeWidth={2} />
+      <rect x={x - 7} y={drop} width="14" height="5" rx="2.5" fill="var(--color-gold)" />
+      <circle cx={x} cy={cy} r="26" fill="var(--color-gold)" opacity={0.12} />
+      <ellipse cx={x} cy={cy} rx="17" ry="15" fill="var(--color-red-500)" />
+      <ellipse
+        cx={x}
+        cy={cy}
+        rx="7"
+        ry="15"
+        fill="none"
+        stroke="var(--color-red-700)"
+        strokeWidth={1.5}
+        opacity={0.45}
+      />
+      <rect x={x - 7} y={cy + 13} width="14" height="5" rx="2.5" fill="var(--color-gold)" />
+      <path
+        d={`M${x} ${cy + 18} V${cy + 30}`}
+        stroke="var(--color-gold)"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
+function LatticeWindow() {
+  return (
+    <>
+      <rect x="18" y="56" width="86" height="104" rx="8" fill={PAPER} />
+      {[47, 75].map((x) => (
+        <path key={x} d={`M${x} 56 V160`} stroke={TIMBER} strokeWidth={3} />
+      ))}
+      {[90, 125].map((y) => (
+        <path key={y} d={`M18 ${y} H104`} stroke={TIMBER} strokeWidth={3} />
+      ))}
+      <rect
+        x="18"
+        y="56"
+        width="86"
+        height="104"
+        rx="8"
+        fill="none"
+        stroke={TIMBER}
+        strokeWidth={6}
+      />
+      <rect x="12" y="160" width="98" height="8" rx="4" fill={TIMBER} />
+    </>
+  );
+}
+
+function HangingScroll({ glyph }: { glyph: string }) {
+  return (
+    <>
+      <path d="M61 18 L48 40 M61 18 L74 40" stroke={TIMBER} strokeWidth={1.5} fill="none" />
+      <circle cx="61" cy="17" r="2.5" fill={TIMBER} />
+      <rect x="26" y="38" width="70" height="6" rx="3" fill={TIMBER} />
+      <rect x="32" y="44" width="58" height="130" fill="#fffaf1" />
+      <rect x="38" y="52" width="46" height="114" fill="none" stroke="#efe1cd" strokeWidth={1.5} />
+      <text
+        x="61"
+        y="122"
+        textAnchor="middle"
+        fontSize="40"
+        fontWeight={600}
+        className="cjk"
+        fill="var(--color-red-600)"
+      >
+        {glyph}
+      </text>
+      <rect x="66" y="146" width="10" height="10" rx="2" fill="var(--color-red-500)" />
+      <rect x="26" y="172" width="70" height="7" rx="3.5" fill={TIMBER} />
+    </>
+  );
+}
+
+function Couplet({ glyphs }: { glyphs: string }) {
+  return (
+    <>
+      <rect x="42" y="26" width="38" height="158" rx="5" fill="var(--color-red-600)" />
+      <rect
+        x="46"
+        y="30"
+        width="30"
+        height="150"
+        rx="3"
+        fill="none"
+        stroke="var(--color-gold)"
+        strokeWidth={1.5}
+        opacity={0.8}
+      />
+      {[...glyphs].map((g, i) => (
+        <text
+          key={i}
+          x="61"
+          y={72 + i * 44}
+          textAnchor="middle"
+          fontSize="26"
+          fontWeight={600}
+          className="cjk"
+          fill="var(--color-gold)"
+        >
+          {g}
+        </text>
+      ))}
+    </>
+  );
+}
+
+function FoldingScreen() {
+  const blossoms: [number, number][] = [
+    [34, 170],
+    [52, 150],
+    [66, 128],
+    [84, 116],
+    [98, 96],
+  ];
+  return (
+    <>
+      {[12, 46, 80].map((x) => (
+        <rect
+          key={x}
+          x={x}
+          y="78"
+          width="30"
+          height="140"
+          rx="4"
+          fill="#fbeee0"
+          stroke={TIMBER}
+          strokeWidth={3}
+        />
+      ))}
+      <path
+        d="M16 200 C34 176 52 158 66 128 S92 100 106 90"
+        stroke="#6b4a3a"
+        strokeWidth={3}
+        strokeLinecap="round"
+        fill="none"
+      />
+      {blossoms.map(([x, y]) => (
+        <g key={`${x}-${y}`}>
+          <circle cx={x} cy={y} r="5.5" fill="#f29a9a" />
+          <circle cx={x} cy={y} r="1.8" fill="var(--color-gold)" />
+        </g>
+      ))}
+    </>
+  );
+}
+
+function Vase() {
+  return (
+    <>
+      <path
+        d="M60 150 C58 122 68 100 88 80"
+        stroke="#6b4a3a"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M62 124 C52 110 44 104 32 100"
+        stroke="#6b4a3a"
+        strokeWidth={2}
+        strokeLinecap="round"
+        fill="none"
+      />
+      {[
+        [88, 80],
+        [76, 96],
+        [32, 100],
+        [46, 106],
+        [66, 112],
+      ].map(([x, y]) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="5" fill="#f29a9a" />
+      ))}
+      <path
+        d="M50 214 C32 204 32 174 48 160 L48 150 H72 L72 160 C88 174 88 204 70 214 Z"
+        fill="#2f7a8c"
+      />
+      <path d="M40 186 H80" stroke="var(--color-gold)" strokeWidth={2} opacity={0.8} />
+      <rect x="44" y="146" width="32" height="6" rx="3" fill="#25606e" />
+      <rect x="40" y="212" width="40" height="6" rx="3" fill={TIMBER} opacity={0.6} />
+    </>
   );
 }
