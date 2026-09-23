@@ -47,61 +47,52 @@
   --font-cjk: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC",
     "Microsoft YaHei", ui-sans-serif, sans-serif;
 
-  /* Chinese red */
-  --color-red-50: #fdf2f3;
-  --color-red-100: #fadce0;
-  --color-red-200: #f4b8bf;
-  --color-red-500: #d81e3c;
-  --color-red-600: #c8102e;
-  --color-red-700: #9e0b24;
-  --color-red-800: #74071a;
+  /* Warm Chinese red */
+  --color-red-50: #fdf1ee;
+  --color-red-100: #fbdfd8;
+  --color-red-200: #f5bdb0;
+  --color-red-500: #e0513f;
+  --color-red-600: #d23f2f;
+  --color-red-700: #aa2f23;
+  --color-red-800: #7f231a;
 
   /* Ink */
-  --color-ink: #1a1614;
-  --color-ink-muted: #6b615c;
-  --color-ink-faint: #a39a95;
+  --color-ink: #231c18;
+  --color-ink-muted: #6e625a;
+  --color-ink-faint: #a69a90;
 
   /* Surfaces */
   --color-paper: #ffffff;
-  --color-surface: #faf8f6;
-  --color-bone: #f2ede8;
-  --color-line: #ebe5e0;
-  --color-line-strong: #ddd4cd;
+  --color-surface: #fbf6f0;
+  --color-bone: #f3ebe2;
+  --color-line: #eee5db;
+  --color-line-strong: #e0d4c7;
 
   /* Accents */
-  --color-jade: #0f7b5f;
-  --color-jade-50: #eaf6f1;
-  --color-jade-100: #cdeade;
-  --color-gold: #d9a441;
-  --color-gold-50: #fdf6e8;
-  --color-gold-100: #f7e6bf;
+  --color-jade: #1d8465;
+  --color-jade-50: #ebf6f1;
+  --color-jade-100: #cfeadf;
+  --color-gold: #e0a73e;
+  --color-gold-50: #fdf5e6;
+  --color-gold-100: #f7e5bd;
 
   --radius-tile: 14px;
 
-  --shadow-tile: 0 1px 0 0 var(--color-line-strong), 0 3px 0 0 #e2dad3,
-    0 6px 12px -4px rgb(26 22 20 / 0.14);
-  --shadow-tile-sm: 0 1px 0 0 var(--color-line-strong), 0 2px 0 0 #e2dad3,
-    0 3px 6px -2px rgb(26 22 20 / 0.12);
-  --shadow-card: 0 1px 2px 0 rgb(26 22 20 / 0.04),
-    0 8px 24px -12px rgb(26 22 20 / 0.16);
+  --shadow-tile: inset 0 -3px 0 0 rgb(120 90 60 / 0.07),
+    0 1px 2px 0 rgb(80 50 30 / 0.08), 0 6px 14px -4px rgb(80 50 30 / 0.16);
+  --shadow-tile-sm: inset 0 -2px 0 0 rgb(120 90 60 / 0.07),
+    0 1px 2px 0 rgb(80 50 30 / 0.08), 0 3px 8px -2px rgb(80 50 30 / 0.14);
+  --shadow-card: 0 1px 2px 0 rgb(80 50 30 / 0.04),
+    0 12px 32px -14px rgb(80 50 30 / 0.18);
+  --shadow-soft: 0 1px 2px 0 rgb(80 50 30 / 0.05),
+    0 4px 14px -6px rgb(80 50 30 / 0.14);
+  --shadow-glow-red: 0 8px 20px -8px rgb(210 63 47 / 0.55);
+  --shadow-glow-jade: 0 8px 20px -8px rgb(29 132 101 / 0.5);
 
-  --animate-pop: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-  --animate-slide-up: slide-up 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-pop: pop 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+  --animate-slide-up: slide-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-shake: shake 0.4s ease-in-out;
-  --animate-flip-in: flip-in 0.36s cubic-bezier(0.22, 1, 0.36, 1);
-  --animate-halo: halo 2.4s ease-in-out infinite;
-}
-
-@keyframes halo {
-  0%,
-  100% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.35;
-    transform: scale(1.06);
-  }
+  --animate-flip-in: flip-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes pop {
@@ -172,7 +163,7 @@ h3,
 h4 {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 /* ── Utilities ─────────────────────────────────────────────────────────── */
@@ -191,13 +182,12 @@ h4 {
   font-family: var(--font-cjk);
 }
 
-/* Chunky pressable button: solid bottom edge that compresses on press */
+/* Soft pressable surface: eases down a touch when tapped */
 @utility press {
-  transition: transform 0.06s ease, box-shadow 0.06s ease,
-    background-color 0.12s ease;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease, background-color 0.15s ease, color 0.15s ease;
   &:active:not(:disabled) {
-    transform: translateY(3px);
-    box-shadow: none !important;
+    transform: scale(0.97);
   }
 }
 
@@ -208,12 +198,13 @@ h4 {
   }
 }
 
-/* Faint woven-paper texture for the app background */
-@utility paper-grain {
+/* Warm wash of light across the top of the app background */
+@utility warm-glow {
   background-image: radial-gradient(
-      circle at 1px 1px,
-      rgb(26 22 20 / 0.035) 1px,
-      transparent 0
-    );
-  background-size: 22px 22px;
+      120% 50% at 50% 0%,
+      rgb(255 255 255 / 0.9) 0%,
+      transparent 70%
+    ),
+    radial-gradient(80% 40% at 100% 100%, rgb(245 189 176 / 0.18), transparent);
+  background-attachment: fixed;
 }

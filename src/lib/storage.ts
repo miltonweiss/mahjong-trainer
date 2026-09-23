@@ -1,11 +1,13 @@
 import { TILE_GROUPS } from "./tiles";
-import type { GroupId, Progress, Settings } from "./types";
+import type { GroupId, Lang, Progress, Settings } from "./types";
 
 export const STORAGE_KEY = "mahjong-trainer:v1";
 
 export const DEFAULT_SETTINGS: Settings = {
+  lang: "en",
   enabledGroups: TILE_GROUPS.filter((g) => g.defaultEnabled).map((g) => g.id),
   modes: { multipleChoice: true, typed: true, matching: true },
+  handReading: true,
   dailyGoal: 40,
   showPinyin: true,
 };
@@ -18,6 +20,7 @@ export function defaultProgress(): Progress {
     dailyXp: { day: todayKey(), xp: 0 },
     tiles: {},
     completedUnits: [],
+    bestSpeed: 0,
     settings: DEFAULT_SETTINGS,
   };
 }
@@ -36,14 +39,24 @@ export function dayKeyOffset(days: number, from = new Date()): string {
   return todayKey(d);
 }
 
+/** The browser's preferred language, if we support it. */
+export function detectLang(): Lang {
+  if (typeof navigator === "undefined") return "en";
+  return navigator.languages?.some((l) => l.toLowerCase().startsWith("de"))
+    ? "de"
+    : "en";
+}
+
 export function loadProgress(): Progress {
   if (typeof window === "undefined") return defaultProgress();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultProgress();
-    const parsed = JSON.parse(raw) as Partial<Progress>;
-    if (parsed.version !== 1) return defaultProgress();
     const base = defaultProgress();
+    if (!raw) {
+      return { ...base, settings: { ...base.settings, lang: detectLang() } };
+    }
+    const parsed = JSON.parse(raw) as Partial<Progress>;
+    if (parsed.version !== 1) return base;
     return {
       ...base,
       ...parsed,
@@ -51,6 +64,7 @@ export function loadProgress(): Progress {
       dailyXp: { ...base.dailyXp, ...parsed.dailyXp },
       tiles: parsed.tiles ?? {},
       completedUnits: parsed.completedUnits ?? [],
+      bestSpeed: parsed.bestSpeed ?? 0,
       settings: {
         ...base.settings,
         ...parsed.settings,

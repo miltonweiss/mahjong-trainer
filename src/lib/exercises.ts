@@ -1,3 +1,8 @@
+import {
+  handPool,
+  makeCompleteHandPuzzle,
+  makeNameSetPuzzle,
+} from "./hands";
 import { TILES, getTile, tilesInGroups } from "./tiles";
 import { tileProgressOf } from "./srs";
 import type {
@@ -23,16 +28,24 @@ function pick<T>(items: T[]): T {
 }
 
 /**
- * Three wrong answers that are actually confusable: same suit first (so the
- * learner has to read the number), then the same number in other suits, then
- * anything else that's in play.
+ * Three wrong answers that are actually confusable. Tiles this learner has
+ * already mistaken this one for come first — that's the discrimination they
+ * need practice on — then same suit, then the same number in other suits.
  */
 export function distractorsFor(
   tile: Tile,
   pool: Tile[],
   count = 3,
+  progress?: TileProgress,
 ): string[] {
   const others = pool.filter((t) => t.id !== tile.id);
+  const inPool = new Set(others.map((t) => t.id));
+
+  const confused = Object.entries(progress?.confusions ?? {})
+    .filter(([id]) => inPool.has(id))
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => id);
+
   const sameGroup = others.filter((t) => t.group === tile.group);
   const sameValue = others.filter(
     (t) => tile.value != null && t.value === tile.value,
@@ -42,10 +55,16 @@ export function distractorsFor(
   );
 
   const chosen: string[] = [];
-  for (const tier of [shuffle(sameGroup), shuffle(sameValue), shuffle(rest)]) {
-    for (const candidate of tier) {
+  const tiers = [
+    confused,
+    shuffle(sameGroup).map((t) => t.id),
+    shuffle(sameValue).map((t) => t.id),
+    shuffle(rest).map((t) => t.id),
+  ];
+  for (const tier of tiers) {
+    for (const id of tier) {
       if (chosen.length >= count) break;
-      if (!chosen.includes(candidate.id)) chosen.push(candidate.id);
+      if (!chosen.includes(id)) chosen.push(id);
     }
   }
   // Very small pools (e.g. Dragons alone) can't fill four options — fall back
@@ -77,22 +96,19 @@ function makeExercise(
   tileId: string,
   kind: ExerciseKind,
   pool: Tile[],
+  progress: Record<string, TileProgress>,
 ): Exercise {
   const tile = getTile(tileId);
-  switch (kind) {
-    case "intro":
-      return { kind: "intro", tileId };
-    case "type-answer":
-      return { kind: "type-answer", tileId };
-    case "match-pairs":
-      return { kind: "match-pairs", tileIds: [tileId] };
-    default:
-      return {
-        kind,
-        tileId,
-        optionIds: shuffle([tileId, ...distractorsFor(tile, pool)]),
-      };
-  }
+  if (kind === "type-answer") return { kind: "type-answer", tileId };
+  const choiceKind = kind === "name-to-tile" ? "name-to-tile" : "tile-to-name";
+  return {
+    kind: choiceKind,
+    tileId,
+    optionIds: shuffle([
+      tileId,
+      ...distractorsFor(tile, pool, 3, tileProgressOf(progress, tileId)),
+    ]),
+  };
 }
 
 interface BuildOptions {
@@ -105,15 +121,15 @@ interface BuildOptions {
   introduceNew: boolean;
 }
 
-function buildSession({
+function buildTileSession({
   tileIds,
   progress,
   settings,
   length,
   introduceNew,
 }: BuildOptions): Exercise[] {
-  const pool = tilesInGroups(settings.enabledGroups);
-  const lookup = pool.length >= 4 ? pool : TILES;
+  const scoped = tilesInGroups(settings.enabledGroups);
+  const pool = scoped.length >= 4 ? scoped : TILES;
   const exercises: Exercise[] = [];
 
   const unseen = introduceNew
@@ -123,19 +139,18 @@ function buildSession({
   // Teach first: card, then an immediate easy recognition question.
   for (const id of unseen) {
     exercises.push({ kind: "intro", tileId: id });
-    exercises.push(makeExercise(id, "tile-to-name", lookup));
+    exercises.push(makeExercise(id, "tile-to-name", pool, progress));
   }
 
   // Then drill everything in the set until the session is long enough.
   const drill: Exercise[] = [];
   let round = 0;
   while (exercises.length + drill.length < length) {
-    const order = shuffle(tileIds);
-    for (const id of order) {
+    for (const id of shuffle(tileIds)) {
       if (exercises.length + drill.length >= length) break;
       const box = tileProgressOf(progress, id).box;
       const kinds = availableKinds(settings, round === 0 ? box : box + 1);
-      drill.push(makeExercise(id, pick(kinds), lookup));
+      drill.push(makeExercise(id, pick(kinds), pool, progress));
     }
     round += 1;
     if (round > 6) break;
@@ -155,16 +170,66 @@ function buildSession({
   return exercises;
 }
 
+/* ── Hand reading ──────────────────────────────────────────────────────── */
+
+function buildHandSession(
+  mode: NonNullable<Unit["handMode"]>,
+  settings: Settings,
+  length: number,
+): Exercise[] {
+  const pool = handPool(settings.enabledGroups);
+  const exercises: Exercise[] = [];
+  let guard = 0;
+
+  while (exercises.length < length && guard < length * 6) {
+    guard += 1;
+    const wantSets =
+      mode === "sets" || (mode === "mixed" && Math.random() < 0.55);
+
+    if (wantSets) {
+      const puzzle = makeNameSetPuzzle(pool);
+      if (puzzle) {
+        exercises.push({
+          kind: "name-set",
+          tileIds: puzzle.tileIds,
+          answer: puzzle.answer,
+          options: puzzle.options,
+        });
+      }
+      continue;
+    }
+
+    const puzzle = makeCompleteHandPuzzle(pool);
+    if (puzzle) {
+      exercises.push({
+        kind: "complete-hand",
+        handIds: puzzle.handIds,
+        answerId: puzzle.answerId,
+        optionIds: puzzle.optionIds,
+      });
+    }
+  }
+
+  return exercises;
+}
+
+/* ── Public builders ───────────────────────────────────────────────────── */
+
 export function buildLesson(
   unit: Unit,
   progress: Record<string, TileProgress>,
   settings: Settings,
 ): Exercise[] {
+  if (unit.kind === "hands") {
+    const length = unit.handMode === "winning" ? 8 : 10;
+    return buildHandSession(unit.handMode ?? "mixed", settings, length);
+  }
+
   const newCount = unit.tileIds.filter((id) => !progress[id]?.lastSeen).length;
   const length = unit.isReview
     ? Math.max(12, unit.tileIds.length + 4)
     : unit.tileIds.length * 3 + newCount;
-  return buildSession({
+  return buildTileSession({
     tileIds: unit.tileIds,
     progress,
     settings,
@@ -179,8 +244,27 @@ export function buildPractice(
   settings: Settings,
   length = 12,
 ): Exercise[] {
-  return buildSession({
+  return buildTileSession({
     tileIds: tileIds.slice(0, 8),
+    progress,
+    settings,
+    length,
+    introduceNew: false,
+  });
+}
+
+/**
+ * A drill built only from tiles the learner mixes up, with the confusable
+ * partner always present as an option so the two must be told apart.
+ */
+export function buildConfusionDrill(
+  tileIds: string[],
+  progress: Record<string, TileProgress>,
+  settings: Settings,
+  length = 10,
+): Exercise[] {
+  return buildTileSession({
+    tileIds: tileIds.slice(0, 6),
     progress,
     settings,
     length,
@@ -191,8 +275,4 @@ export function buildPractice(
 /** Questions that score a tile; intro cards don't count towards accuracy. */
 export function isScored(exercise: Exercise): boolean {
   return exercise.kind !== "intro";
-}
-
-export function tilesInExercise(exercise: Exercise): string[] {
-  return exercise.kind === "match-pairs" ? exercise.tileIds : [exercise.tileId];
 }

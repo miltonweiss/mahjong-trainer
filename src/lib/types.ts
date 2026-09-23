@@ -1,3 +1,5 @@
+export type Lang = "en" | "de";
+
 export type GroupId =
   | "characters"
   | "dots"
@@ -10,12 +12,15 @@ export type GroupId =
 
 export type GroupKind = "suit" | "honor" | "bonus";
 
+/** Per-language name, accepted typed answers and memory hook. */
+export interface Localised {
+  name: string;
+  aliases: string[];
+  note: string;
+}
+
 export interface TileGroup {
   id: GroupId;
-  /** Short label used in nav, chips and unit titles. */
-  name: string;
-  /** One-line explanation shown in Settings. */
-  blurb: string;
   kind: GroupKind;
   /** Bonus groups are off by default so beginners start with the core 34. */
   defaultEnabled: boolean;
@@ -24,27 +29,36 @@ export interface TileGroup {
 export interface Tile {
   id: string;
   group: GroupId;
-  /** Canonical English name, e.g. "5 Dots". */
-  name: string;
-  /** Other spellings accepted when the learner types an answer. */
-  aliases: string[];
   /** Chinese name, e.g. 五筒. */
   chinese: string;
   pinyin: string;
-  /** 1–9 for suit tiles, undefined for honors and bonus tiles. */
+  /** 1–9 for suit tiles, undefined for honours and bonus tiles. */
   value?: number;
   /** Copies of this tile in a standard Singapore set. */
   copies: number;
-  /** Mnemonic or fact shown on the intro card and in the glossary. */
-  note: string;
+  en: Localised;
+  de: Localised;
 }
+
+/* ── Sets and hands ────────────────────────────────────────────────────── */
+
+export type SetKind = "pair" | "pung" | "kong" | "chow" | "none";
+
+export interface TileSet {
+  kind: SetKind;
+  tileIds: string[];
+}
+
+/* ── Exercises ─────────────────────────────────────────────────────────── */
 
 export type ExerciseKind =
   | "intro"
   | "tile-to-name"
   | "name-to-tile"
   | "type-answer"
-  | "match-pairs";
+  | "match-pairs"
+  | "name-set"
+  | "complete-hand";
 
 export interface IntroExercise {
   kind: "intro";
@@ -67,21 +81,50 @@ export interface MatchExercise {
   tileIds: string[];
 }
 
+/** Show a group of tiles, pick what kind of set they form. */
+export interface NameSetExercise {
+  kind: "name-set";
+  tileIds: string[];
+  answer: SetKind;
+  options: SetKind[];
+}
+
+/** Show 13 tiles, pick the one that completes the hand. */
+export interface CompleteHandExercise {
+  kind: "complete-hand";
+  handIds: string[];
+  answerId: string;
+  optionIds: string[];
+}
+
 export type Exercise =
   | IntroExercise
   | ChoiceExercise
   | TypeExercise
-  | MatchExercise;
+  | MatchExercise
+  | NameSetExercise
+  | CompleteHandExercise;
+
+/* ── Path ──────────────────────────────────────────────────────────────── */
+
+export type UnitKind = "tiles" | "hands";
 
 export interface Unit {
   id: string;
-  group: GroupId;
-  title: string;
-  subtitle: string;
+  kind: UnitKind;
+  /** Tile units belong to a group; hand units are grouped under "hands". */
+  group: GroupId | "hands";
+  /** Number range for a suit chunk, e.g. [4, 6]. */
+  range?: [number, number];
+  /** Tiles taught by this unit. Empty for hand units. */
   tileIds: string[];
+  /** Which hand exercise this unit drills. */
+  handMode?: "sets" | "winning" | "mixed";
   /** True for the recap unit that closes out a group. */
   isReview: boolean;
 }
+
+/* ── Progress ──────────────────────────────────────────────────────────── */
 
 export interface TileProgress {
   /** Leitner box, 0 (new/failed) → 5 (mastered). */
@@ -92,15 +135,20 @@ export interface TileProgress {
   lastSeen: string | null;
   /** ISO timestamp when this tile is next due for review. */
   due: string | null;
+  /** Tiles this one has been mistaken for, and how often. */
+  confusions?: Record<string, number>;
 }
 
 export interface Settings {
+  lang: Lang;
   enabledGroups: GroupId[];
   modes: {
     multipleChoice: boolean;
     typed: boolean;
     matching: boolean;
   };
+  /** Adds the hand-reading section to the end of the path. */
+  handReading: boolean;
   dailyGoal: number;
   showPinyin: boolean;
 }
@@ -118,6 +166,8 @@ export interface Progress {
   dailyXp: { day: string; xp: number };
   tiles: Record<string, TileProgress>;
   completedUnits: string[];
+  /** Best score in the 60-second speed drill. */
+  bestSpeed: number;
   settings: Settings;
 }
 

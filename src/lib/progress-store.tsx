@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
+import { translator, type Translate } from "./i18n";
 import { scoreAnswer, tileProgressOf } from "./srs";
 import {
   addDailyXp,
@@ -69,12 +70,22 @@ function update(mutate: (prev: Progress) => Progress) {
 
 /* ── Actions ───────────────────────────────────────────────────────────── */
 
-export function recordAnswer(tileId: string, correct: boolean) {
+/** `mistakenFor` is the tile the learner picked instead, for confusion tracking. */
+export function recordAnswer(
+  tileId: string,
+  correct: boolean,
+  mistakenFor?: string,
+) {
   update((prev) => ({
     ...prev,
     tiles: {
       ...prev.tiles,
-      [tileId]: scoreAnswer(tileProgressOf(prev.tiles, tileId), correct),
+      [tileId]: scoreAnswer(
+        tileProgressOf(prev.tiles, tileId),
+        correct,
+        new Date(),
+        mistakenFor,
+      ),
     },
   }));
 }
@@ -89,6 +100,16 @@ export function finishLesson(result: LessonResult) {
       result.unitId && !prev.completedUnits.includes(result.unitId)
         ? [...prev.completedUnits, result.unitId]
         : prev.completedUnits,
+  }));
+}
+
+export function finishSpeedRun(score: number) {
+  update((prev) => ({
+    ...prev,
+    xp: prev.xp + score * 2,
+    dailyXp: addDailyXp(prev.dailyXp, score * 2),
+    streak: bumpStreak(prev.streak),
+    bestSpeed: Math.max(prev.bestSpeed, score),
   }));
 }
 
@@ -107,8 +128,10 @@ export interface ProgressStore {
   /** False until localStorage has been read, so the UI can hold its shape. */
   ready: boolean;
   path: Unit[];
+  t: Translate;
   recordAnswer: typeof recordAnswer;
   finishLesson: typeof finishLesson;
+  finishSpeedRun: typeof finishSpeedRun;
   updateSettings: typeof updateSettings;
   resetProgress: typeof resetProgress;
 }
@@ -120,9 +143,10 @@ export function useProgress(): ProgressStore {
     getServerSnapshot,
   );
 
-  const path = useMemo(
-    () => buildPath(progress.settings.enabledGroups),
-    [progress.settings.enabledGroups],
+  const path = useMemo(() => buildPath(progress.settings), [progress.settings]);
+  const t = useMemo(
+    () => translator(progress.settings.lang),
+    [progress.settings.lang],
   );
 
   // The actions live at module scope, so they're already referentially stable
@@ -131,8 +155,10 @@ export function useProgress(): ProgressStore {
     progress,
     ready,
     path,
+    t,
     recordAnswer,
     finishLesson,
+    finishSpeedRun,
     updateSettings,
     resetProgress,
   };

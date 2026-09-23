@@ -23,6 +23,8 @@ export function scoreAnswer(
   prev: TileProgress,
   correct: boolean,
   now = new Date(),
+  /** What the learner answered instead, when they got it wrong. */
+  mistakenFor?: string,
 ): TileProgress {
   // A miss drops the tile two boxes rather than all the way to zero, so one
   // slip on a well-known tile doesn't undo a week of reviews.
@@ -30,12 +32,22 @@ export function scoreAnswer(
     ? Math.min(MAX_BOX, prev.box + 1)
     : Math.max(0, prev.box - 2);
   const due = new Date(now.getTime() + BOX_INTERVALS_HOURS[box] * 3600_000);
+
+  let confusions = prev.confusions;
+  if (!correct && mistakenFor) {
+    confusions = {
+      ...prev.confusions,
+      [mistakenFor]: (prev.confusions?.[mistakenFor] ?? 0) + 1,
+    };
+  }
+
   return {
     box,
     correct: prev.correct + (correct ? 1 : 0),
     wrong: prev.wrong + (correct ? 0 : 1),
     lastSeen: now.toISOString(),
     due: due.toISOString(),
+    ...(confusions ? { confusions } : {}),
   };
 }
 
@@ -68,8 +80,47 @@ export function reviewQueue(
       const dueB = isDue(pb, now) ? 0 : 1;
       if (dueA !== dueB) return dueA - dueB;
       if (pa.box !== pb.box) return pa.box - pb.box;
-      return (
-        new Date(pa.lastSeen!).getTime() - new Date(pb.lastSeen!).getTime()
-      );
+      return new Date(pa.lastSeen!).getTime() - new Date(pb.lastSeen!).getTime();
     });
+}
+
+export interface ConfusionPair {
+  tileId: string;
+  mistakenFor: string;
+  count: number;
+}
+
+/**
+ * The tiles a learner keeps reading as each other, worst first. Only pairs
+ * seen more than once count — a single slip isn't a pattern.
+ */
+export function confusionPairs(
+  tiles: Record<string, TileProgress>,
+  scope: string[],
+  minCount = 2,
+): ConfusionPair[] {
+  const inScope = new Set(scope);
+  const pairs: ConfusionPair[] = [];
+  for (const [tileId, progress] of Object.entries(tiles)) {
+    if (!inScope.has(tileId) || !progress.confusions) continue;
+    for (const [mistakenFor, count] of Object.entries(progress.confusions)) {
+      if (count < minCount || !inScope.has(mistakenFor)) continue;
+      pairs.push({ tileId, mistakenFor, count });
+    }
+  }
+  return pairs.sort((a, b) => b.count - a.count);
+}
+
+/** Tiles worth drilling side by side, flattened from the confusion pairs. */
+export function confusedTileIds(
+  tiles: Record<string, TileProgress>,
+  scope: string[],
+  minCount = 2,
+): string[] {
+  const ids: string[] = [];
+  for (const pair of confusionPairs(tiles, scope, minCount)) {
+    if (!ids.includes(pair.tileId)) ids.push(pair.tileId);
+    if (!ids.includes(pair.mistakenFor)) ids.push(pair.mistakenFor);
+  }
+  return ids;
 }

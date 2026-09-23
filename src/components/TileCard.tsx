@@ -69,7 +69,7 @@ export function TileBack({
     <div
       className={`aspect-[5/7] shrink-0 bg-jade ring-1 ring-inset ring-jade shadow-tile-sm ${SIZE_CLASS[size]} ${className}`}
     >
-      <div className="flex h-full w-full items-center justify-center rounded-[inherit] bg-[linear-gradient(135deg,#12876a,#0c6b52)] p-1.5">
+      <div className="flex h-full w-full items-center justify-center rounded-[inherit] bg-[linear-gradient(145deg,#27a07b,#1a7659)] p-1.5">
         <div className="h-full w-full rounded-[inherit] border border-white/25" />
       </div>
     </div>

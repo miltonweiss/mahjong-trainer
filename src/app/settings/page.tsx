@@ -57,16 +57,16 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-12">
-      <header className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur-md">
-        <div className="flex h-14 items-center gap-2 px-2">
+      <header className="pointer-events-none sticky top-0 z-30 px-4 pt-3 pb-2">
+        <div className="pointer-events-auto mx-auto flex w-fit items-center gap-3 rounded-full bg-white/85 py-1.5 pr-5 pl-1.5 shadow-card ring-1 ring-white/70 backdrop-blur-xl">
           <Link
             href="/"
             aria-label="Back"
-            className="press grid h-10 w-10 place-items-center rounded-full text-ink-muted hover:bg-white hover:text-ink"
+            className="press grid h-9 w-9 place-items-center rounded-full bg-surface text-ink-muted hover:bg-bone hover:text-ink"
           >
             <ChevronLeftIcon className="h-5 w-5" />
           </Link>
-          <h1 className="font-display text-lg font-semibold">Settings</h1>
+          <h1 className="font-display text-[17px] font-semibold">Settings</h1>
         </div>
       </header>
 
@@ -116,10 +116,10 @@ export default function SettingsPage() {
               <button
                 key={goal}
                 onClick={() => updateSettings({ dailyGoal: goal })}
-                className={`press flex-1 rounded-xl py-3 font-display text-[15px] font-semibold ring-1 transition-colors ${
+                className={`press flex-1 rounded-full py-3 font-display text-[15px] font-semibold transition-colors ${
                   active
-                    ? "bg-red-600 text-white ring-red-600"
-                    : "bg-white text-ink-muted ring-line"
+                    ? "bg-red-600 text-white shadow-glow-red"
+                    : "bg-surface text-ink-muted hover:bg-bone"
                 }`}
               >
                 {goal}
@@ -144,7 +144,7 @@ export default function SettingsPage() {
       <Section title="Progress">
         <div className="px-4 py-4">
           {confirmReset ? (
-            <div className="rounded-xl bg-red-50 p-4 ring-1 ring-red-100">
+            <div className="rounded-[22px] bg-red-50 p-4">
               <p className="text-[14.5px] text-red-700">
                 This clears your XP, streak, unit progress and every tile
                 score. Your settings stay as they are.
@@ -155,13 +155,13 @@ export default function SettingsPage() {
                     resetProgress();
                     setConfirmReset(false);
                   }}
-                  className="press flex-1 rounded-xl bg-red-600 py-2.5 font-display text-[13px] font-semibold tracking-wide text-white uppercase"
+                  className="press flex-1 rounded-full bg-red-600 py-3 font-display text-[15px] font-semibold text-white shadow-glow-red"
                 >
                   Reset everything
                 </button>
                 <button
                   onClick={() => setConfirmReset(false)}
-                  className="press flex-1 rounded-xl bg-white py-2.5 font-display text-[13px] font-semibold tracking-wide text-ink uppercase ring-1 ring-line"
+                  className="press flex-1 rounded-full bg-white py-3 font-display text-[15px] font-semibold text-ink shadow-soft"
                 >
                   Cancel
                 </button>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
           ) : (
             <button
               onClick={() => setConfirmReset(true)}
-              className="press w-full rounded-xl bg-white py-3 font-display text-[14px] font-semibold text-red-600 ring-1 ring-line"
+              className="press w-full rounded-full bg-red-50 py-3.5 font-display text-[15px] font-semibold text-red-600 hover:bg-red-100"
             >
               Reset progress
             </button>
@@ -195,16 +195,16 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-7">
-      <h2 className="px-5 font-display text-[12px] font-semibold tracking-[0.16em] text-ink-faint uppercase">
+    <section className="mt-7 px-4">
+      <h2 className="px-1 font-display text-[19px] font-semibold">
         {title}
       </h2>
       {note && (
-        <p className="mt-1.5 px-5 text-[13px] leading-relaxed text-ink-muted">
+        <p className="mt-1 px-1 text-[14px] leading-relaxed text-ink-muted">
           {note}
         </p>
       )}
-      <div className="mt-2.5 divide-y divide-line border-y border-line bg-white">
+      <div className="mt-3 divide-y divide-line overflow-hidden rounded-[24px] bg-white shadow-soft">
         {children}
       </div>
     </section>
@@ -233,7 +233,7 @@ function Row({
       {leading}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <p className="font-display text-[16px] font-medium">{title}</p>
+          <p className="font-display text-[16px] font-semibold">{title}</p>
           {meta && (
             <span className="numeric text-[12px] text-ink-faint">{meta}</span>
           )}
